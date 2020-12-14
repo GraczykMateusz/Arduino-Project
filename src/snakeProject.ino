@@ -13,15 +13,27 @@
 
 #define LED_OFFSET 32
 
-#define COLOR CRGB::Red //Red is Green
+//Colors
+#define COLOR       CRGB::Red //Red is Green
 #define FRUIT_COLOR CRGB::Green // Green is Red
 #define POINT_COLOR CRGB::Blue
+
+#define MAX_SNAKE_TAIL 256
+
+//Snake tail length
+int snake_tail = 0;
 
 //Snake's movement
 bool left;
 bool right;
 bool up;
 bool down;
+
+//Snake speed
+int delay_time;
+
+//collision
+bool is_collision = false;
 
 //Fruit
 int fruit_position_X = -1;
@@ -38,12 +50,19 @@ bool is_start_display = false;
 //Wrong SW_PIN input defender
 bool is_button_pressed = false;
 
-//Game 
+//Snake head position 
 unsigned int head_position_X;
 unsigned int head_position_Y;
 
+unsigned int old_head_position_X;
+unsigned int old_head_position_Y;
+
+//Snake position in one line (the same as array)
 int position_X;
-int old_position_X;
+int old_position_X[MAX_SNAKE_TAIL];
+
+//Score
+int score = 0;
 
 //Keep current leds to display
 bool read_value[NUM_LEDS];
@@ -133,14 +152,10 @@ const bool out[NUM_LEDS] PROGMEM  =  {1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,
                                       1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
                                       1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1};
 
+/*----------------> EXIT <----------------*/
 void check_exit() {
   if(is_button_pressed) {
-    is_start_game = false;
-    is_only_once = true;
-    is_button_pressed = false;
-
-    fruit_position_X = -1;
-    is_spawn_fruit = false;
+    reset();
     
     for(int i = 0; i < NUM_LEDS; ++i) {
       read_value[i] = pgm_read_byte(&out[i]);
@@ -149,6 +164,23 @@ void check_exit() {
     
     delay(3000);
   }
+}
+
+void reset() {
+  is_start_game = false;
+  is_only_once = true;
+  is_button_pressed = false;
+
+  fruit_position_X = -1;
+  is_spawn_fruit = false;
+
+  score = 0;
+
+  snake_tail = 0;
+
+  is_collision = false;
+
+  delay_time = 250;
 }
 
 /*--------> INPUT CONTROLLER / TIMER <--------*/
@@ -197,7 +229,7 @@ void displayer(bool* turnOnOffLeds) {
   int row = -1;
   
   for(int i = 0; i < NUM_LEDS; ++i) {
-    if(i == fruit_position_X)
+    if(i == fruit_position_X && position_X != fruit_position_X)
       color = FRUIT_COLOR;
       
     if(i % 16 == 0) {
@@ -271,49 +303,84 @@ void starting_timer_display() {
 void gameplay() {
   //Movement
   move_snake();
-  read_value[old_position_X] = 0;
   
   position_X = convert_XY_to_X(head_position_X, head_position_Y);
   read_value[position_X] = 1;
 
   displayer(read_value);
 
+  check_point();
+
   //Fruit genarates
   if(position_X == fruit_position_X) {
-    read_value[fruit_position_X] = 0;
+    ++snake_tail;
+    is_spawn_fruit = false;
     generate_fruit_position();
   }
-    
-  delay(100);
 
-  old_position_X = position_X;
+  tail();
+  
+  change_speed();
+}
+
+void tail() {  
+  if(snake_tail == 0) {
+    old_position_X[0] = position_X;
+    read_value[old_position_X[0]] = 0;
+  }
+  else if(snake_tail == 1) {
+    old_position_X[1] = old_position_X[0];
+    old_position_X[0] = position_X;
+    
+    read_value[old_position_X[1]] = 0;
+  }
+  else {    
+    for(int i = snake_tail; i > 0; --i) {
+      old_position_X[i] = old_position_X[i-1];
+    }
+    old_position_X[0] = position_X;
+    read_value[old_position_X[snake_tail]] = 0;
+  }
 }
 
 void move_snake() {
   if(left) {
     if(head_position_X > 0)
       --head_position_X;
+    else
+      is_collision = true;
   }
   else if(right) {
     if(head_position_X < 15)
       ++head_position_X;
+    else
+      is_collision = true;
   }
   else if(up) {
     if(head_position_Y > 0)
       --head_position_Y;
+    else
+      is_collision = true;
   }
   else if(down) {
     if(head_position_Y < 15)
       ++head_position_Y;
+    else
+      is_collision = true;
   }
 }
 
 void generate_fruit_position() {
-  long randPosition = random(NUM_LEDS);
+  do {
+    long randPosition = random(NUM_LEDS);
+    fruit_position_X = int(randPosition);
 
-  fruit_position_X = int(randPosition);
+    if(read_value[fruit_position_X] == 0)
+      is_spawn_fruit = true;
+    
+  } while(!is_spawn_fruit);
+  
   read_value[fruit_position_X] = 1;
-  is_spawn_fruit = true;
 }
 
 int convert_XY_to_X(int headPositionX, int headPositionY) {
@@ -327,6 +394,46 @@ int convert_XY_to_X(int headPositionX, int headPositionY) {
       position = head_position_X + i * ROW_OFFSET;
   }
   return position;
+}
+
+void check_point() {
+  if(position_X == fruit_position_X) {
+    ++score;
+     
+  }
+}
+
+void check_collision() {
+  if(is_collision) {
+    
+  }
+}
+
+void change_speed() {
+  if(score == 0)
+    delay_time = 250;
+  else if(score == 1)
+    delay_time = 235;
+  else if(score == 3)
+    delay_time = 220;
+  else if(score == 5)
+    delay_time = 205;
+  else if(score == 7)
+    delay_time = 190;
+  else if(score == 9)
+    delay_time = 175;
+  else if(score == 11)
+    delay_time = 160;
+  else if(score == 13)
+    delay_time = 145;
+  else if(score == 15)
+    delay_time = 130;
+  else if(score == 17)
+    delay_time = 115;
+  else if(score == 19)
+    delay_time = 100;
+
+  delay(delay_time);
 }
 
 /*-------------> CONFIGURATION <-------------*/
