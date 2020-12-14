@@ -133,12 +133,10 @@ const bool out[NUM_LEDS] PROGMEM  =  {1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,
                                       1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1};
 
 void check_exit() {
-  Serial.println("checking");
   if(is_button_pressed) {
     is_start_game = false;
     is_only_once = true;
     is_button_pressed = false;
-    Serial.println("EXIT");
     
     for(int i = 0; i < NUM_LEDS; ++i) {
       read_value[i] = pgm_read_byte(&out[i]);
@@ -151,25 +149,25 @@ void check_exit() {
 
 /*--------> INPUT CONTROLLER / TIMER <--------*/
 void inputController() {
-  if(analogRead(X_PIN) < 50) { //Left
+  if(analogRead(X_PIN) < 50 && !right) { //Left
     left  = true;
     right = false;
     up    = false;
     down  = false;
   }
-  if(analogRead(X_PIN) > 972) { //Right
+  if(analogRead(X_PIN) > 972 && !left) { //Right
     left  = false;
     right = true;
     up    = false;
     down  = false;
   }
-  if(analogRead(Y_PIN) < 50) { //Up
+  if(analogRead(Y_PIN) < 50 && !down) { //Up
     left  = false;
     right = false;
     up    = true;
     down  = false;
   }
-  if(analogRead(Y_PIN) > 972) { //Down
+  if(analogRead(Y_PIN) > 972 && !up) { //Down
     left  = false;
     right = false; 
     up    = false;
@@ -270,6 +268,7 @@ void gameplay() {
   displayer(read_value);
 
   if(position_X == fruit_position_X) {
+    read_value[fruit_position_X] = 0;
     generate_fruit_position();
   }
     
