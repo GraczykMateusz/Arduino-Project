@@ -14,35 +14,42 @@
 #define LED_OFFSET 32
 
 #define COLOR CRGB::Blue
+#define FRUINT_COLOR CRGB::Red
 
-bool left  = false;
-bool right = false;
-bool up    = false;
-bool down  = false;
+//Snake's movement
+bool left;
+bool right;
+bool up;
+bool down;
 
-// The array of leds. One item for each led in strip.
+//Fruit
+int fruit_position_X;
+bool is_spawn_fruit;
+
+//The array of leds. One item for each led in strip.
 CRGB leds[NUM_LEDS];
 
 //Needed to start game correctly
 bool is_start_game = false; 
 bool is_only_once  = true;
+bool is_start_display = false;
 
 //Wrong SW_PIN input defender
 bool is_button_pressed = false;
 
 //Game 
-unsigned int headPositionX = sqrt(NUM_LEDS) / 2;
-unsigned int headPositionY = sqrt(NUM_LEDS) / 2;
+unsigned int head_position_X;
+unsigned int head_position_Y;
 
-int positionX;
-int oldPositionX;
+int position_X;
+int old_position_X;
 
 //Keep current leds to display
-bool readValue[NUM_LEDS];
+bool read_value[NUM_LEDS];
 
-const bool start[NUM_LEDS] PROGMEM = {1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,
+const bool start[NUM_LEDS] PROGMEM = {1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,
                                       1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,
-                                      0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,
+                                      1,0,0,0,0,0,1,1,1,1,0,0,0,0,0,1,
                                       0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,
                                       0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,
                                       0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,
@@ -53,30 +60,30 @@ const bool start[NUM_LEDS] PROGMEM = {1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,
                                       0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,
                                       0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,
                                       0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,
-                                      0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,
                                       1,0,0,0,0,0,1,1,1,1,0,0,0,0,0,1,
-                                      1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1};
+                                      1,0,0,0,0,0,1,1,1,1,0,0,0,0,0,1,
+                                      1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1};
 
-const bool three[NUM_LEDS] PROGMEM = {1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,
+const bool three[NUM_LEDS] PROGMEM = {1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,
                                       1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-                                      0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,
-                                      0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,
-                                      0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,
-                                      0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,
-                                      0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,
-                                      0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,
+                                      1,0,0,0,1,1,1,1,1,1,1,1,1,0,0,1,
                                       0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,
                                       0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,
                                       0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,
                                       0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,
                                       0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,
                                       0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,
+                                      0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,
+                                      0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,
+                                      0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,
+                                      0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,
+                                      1,0,0,0,1,1,1,1,1,1,1,1,1,0,0,1,
                                       1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-                                      1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1};
+                                      1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1};
 
-const bool two[NUM_LEDS] PROGMEM  =  {1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,
+const bool two[NUM_LEDS] PROGMEM  =  {1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,
                                       1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-                                      0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,
+                                      1,0,0,0,0,0,1,1,1,1,1,0,0,0,0,1,
                                       0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,
                                       0,0,0,0,1,1,1,0,0,1,1,1,1,0,0,0,
                                       0,0,0,0,1,1,0,0,0,0,1,1,1,0,0,0,
@@ -87,13 +94,13 @@ const bool two[NUM_LEDS] PROGMEM  =  {1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,
                                       0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,
                                       0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,
                                       0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,
-                                      0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,
+                                      1,0,0,0,1,1,1,1,1,1,1,1,1,0,0,1,
                                       1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-                                      1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1};
+                                      1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1};
 
-const bool one[NUM_LEDS] PROGMEM  =  {1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,
+const bool one[NUM_LEDS] PROGMEM  =  {1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,
                                       1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-                                      0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,
+                                      1,0,0,0,0,0,1,1,1,1,1,0,0,0,0,1,
                                       0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,
                                       0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,
                                       0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,
@@ -104,9 +111,26 @@ const bool one[NUM_LEDS] PROGMEM  =  {1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,
                                       0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,
                                       0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,
                                       0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,
-                                      0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,
+                                      1,0,0,0,1,1,1,1,1,1,1,1,1,0,0,1,
                                       1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-                                      1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1};
+                                      1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1};
+
+const bool out[NUM_LEDS] PROGMEM  =  {1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,
+                                      1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+                                      1,0,1,1,0,0,0,0,0,0,0,0,1,1,0,1,
+                                      0,0,1,1,1,0,0,0,0,0,0,1,1,1,0,0,
+                                      0,0,0,1,1,1,0,0,0,0,1,1,1,0,0,0,
+                                      0,0,0,0,1,1,1,0,0,1,1,1,0,0,0,0,
+                                      0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,
+                                      0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,
+                                      0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,
+                                      0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,
+                                      0,0,0,0,1,1,1,0,0,1,1,1,0,0,0,0,
+                                      0,0,0,1,1,1,0,0,0,0,1,1,1,0,0,0,
+                                      0,0,1,1,1,0,0,0,0,0,0,1,1,1,0,0,
+                                      1,0,1,1,0,0,0,0,0,0,0,0,1,1,0,1,
+                                      1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+                                      1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1};
 
 void check_exit() {
   Serial.println("checking");
@@ -115,62 +139,51 @@ void check_exit() {
     is_only_once = true;
     is_button_pressed = false;
     Serial.println("EXIT");
+    
+    for(int i = 0; i < NUM_LEDS; ++i) {
+      read_value[i] = pgm_read_byte(&out[i]);
+    }
+    displayer(read_value);
+    
     delay(3000);
   }
 }
 
 /*--------> INPUT CONTROLLER / TIMER <--------*/
 void inputController() {
- 
   if(analogRead(X_PIN) < 50) { //Left
     left  = true;
     right = false;
     up    = false;
     down  = false;
-    Serial.println("LEFT JOYSTICK");
   }
-  
   if(analogRead(X_PIN) > 972) { //Right
     left  = false;
     right = true;
     up    = false;
     down  = false;
-    Serial.println("RIGHT JOYSTICK");
   }
-  
   if(analogRead(Y_PIN) < 50) { //Up
     left  = false;
     right = false;
     up    = true;
     down  = false;
-    Serial.println("UP JOYSTICK");
   }
   if(analogRead(Y_PIN) > 972) { //Down
     left  = false;
-    right = false;
+    right = false; 
     up    = false;
     down  = true;
-    Serial.println("DOWN JOYSTICK");
-  }
-}
-  
-
-ISR(TIMER1_OVF_vect) 
-{
-  TCNT1 = 0;   // preload timer
-  
+  } 
   if(analogRead(SW_PIN) <  30  &&  
      analogRead(X_PIN)  >  411 &&
      analogRead(X_PIN)  <  611 &&
      analogRead(Y_PIN)  >  411 &&
      analogRead(Y_PIN)  <  611) {
     is_button_pressed = true;
-    Serial.println("Switch");
   } else {
     is_button_pressed = false;
   }
-  
-  inputController();
 }
 
 /*----------------> DISPLAY <----------------*/
@@ -211,84 +224,97 @@ void displayer(bool* turnOnOffLeds) {
 }
 
 void start_display() {
+  is_start_display = true;
+  
   for(int i = 0; i < NUM_LEDS; ++i) {
-    readValue[i] = pgm_read_byte(&start[i]);
+    read_value[i] = pgm_read_byte(&start[i]);
   }
-  displayer(readValue);
+  displayer(read_value);
 }
 
 void starting_timer_display() {
   for(int i = 0; i < NUM_LEDS; ++i) {
-    readValue[i] = pgm_read_byte(&three[i]);
+    read_value[i] = pgm_read_byte(&three[i]);
   }
-  displayer(readValue);
+  displayer(read_value);
 
   delay(1000);
   
   for(int i = 0; i < NUM_LEDS; ++i) {
-    readValue[i] = pgm_read_byte(&two[i]);
+    read_value[i] = pgm_read_byte(&two[i]);
   }
-  displayer(readValue);
+  displayer(read_value);
 
   delay(1000);
 
   for(int i = 0; i < NUM_LEDS; ++i) {
-    readValue[i] = pgm_read_byte(&one[i]);
+    read_value[i] = pgm_read_byte(&one[i]);
   }
-  displayer(readValue);
+  displayer(read_value);
 
   delay(1000);
 
   for(int i = 0; i < NUM_LEDS; ++i) {
-    readValue[i] = 0;
+    read_value[i] = 0;
   }
-}
-
-void test() {
-  moveSnake();
-  readValue[oldPositionX] = 0;
-  
-  positionX = convertXYposToXpos(headPositionX, headPositionY);
-  readValue[positionX] = 1;
-  
-  displayer(readValue);
-
-  delay(500);
-
-  oldPositionX = positionX;
 }
 
 /*----------------> GAMEPLAY <---------------*/
-void moveSnake() {
+void gameplay() {
+  move_snake();
+  read_value[old_position_X] = 0;
+  
+  position_X = convert_XY_to_X(head_position_X, head_position_Y);
+  read_value[position_X] = 1;
+
+  displayer(read_value);
+
+  if(position_X == fruit_position_X) {
+    generate_fruit_position();
+  }
+    
+  delay(100);
+
+  old_position_X = position_X;
+}
+
+void move_snake() {
   if(left) {
-    --headPositionX;
-    Serial.println("LEFT");
+    if(head_position_X > 0)
+      --head_position_X;
   }
   else if(right) {
-    ++headPositionX;
-    Serial.println("RIGTH");
+    if(head_position_X < 15)
+      ++head_position_X;
   }
   else if(up) {
-    ++headPositionY;
-    Serial.println("UP");
+    if(head_position_Y > 0)
+      --head_position_Y;
   }
   else if(down) {
-    --headPositionY;
-    Serial.println("DOWN");
+    if(head_position_Y < 15)
+      ++head_position_Y;
   }
 }
 
-int convertXYposToXpos(int headPositionX, int headPositionY) {
+void generate_fruit_position() {
+  long randPosition = random(NUM_LEDS);
+
+  fruit_position_X = int(randPosition);
+  read_value[fruit_position_X] = 1;
+  is_spawn_fruit = true;
+}
+
+int convert_XY_to_X(int headPositionX, int headPositionY) {
   const int ROW_OFFSET = 16;
   const int ROW_NUM = 16;
   
   int position;
 
   for(int i = 0; i < ROW_NUM; ++i) {
-    if(headPositionY == i)
-      position = headPositionX + i * ROW_OFFSET;
+    if(head_position_Y == i)
+      position = head_position_X + i * ROW_OFFSET;
   }
-  Serial.println(position);
   return position;
 }
 
@@ -296,10 +322,14 @@ int convertXYposToXpos(int headPositionX, int headPositionY) {
 void setup() {
   Serial.begin(9600);
 
-  FastLED.setBrightness(10);
+  //Clear display
+  FastLED.clear();
+  FastLED.show();
 
-  //Clock type
+  FastLED.setBrightness(1);
   FastLED.addLeds<WS2812B, DATA_PIN, RGB>(leds, NUM_LEDS);
+
+  randomSeed(analogRead(0));
 
   //Controller Input
   pinMode     (X_PIN,  INPUT);
@@ -308,48 +338,41 @@ void setup() {
 
   //Data to WS2812b panel
   pinMode     (DATA_PIN, OUTPUT);
-
-  //Timer config
-  timer_config();                   /* The timer is used as a guard to get correct SW_PIN input.
-                                    It's necessary because sometimes the joystick has input issue.
-                                    When his position is UP -> sets SW_PIN to zero. */
 }
 
 void config_game() {
   is_start_game = true;
   is_only_once = false;
-}
+  is_start_display = false;
 
-void timer_config() {
-  noInterrupts();
-  
-  TCCR1A  = 0;
-  TCCR1B  = 0;
+  left  = true; //Snake starts left movement
+  right = false;
+  up    = false;
+  down  = false;
 
-  TCNT1   = 0;
-  TCCR1B |= (0 << CS02) | (0 << CS01) | (1 << CS00);
-  TIMSK1 |= (1 << TOIE1);
-
-  interrupts();
+  head_position_X = sqrt(NUM_LEDS) / 2;
+  head_position_Y = sqrt(NUM_LEDS) / 2;
 }
 
 /*---------------> MAIN LOOP <---------------*/
 void loop() {
-  FastLED.clear();
-  FastLED.show();
- 
+  inputController();
+  
   if(is_start_game || is_button_pressed) {
     //Set up game data and display the timer (only once after starting the game).
     if(is_only_once) {
       config_game();
-      starting_timer_display();  
+      starting_timer_display();
+      generate_fruit_position(); 
     }
     //Game//
-    test();
+    inputController();
+    gameplay();
     
     //Hold the button to exit the game
+    inputController();
     check_exit();
-  } else if(!is_start_game) {
+  } else if(!is_start_game && !is_start_display) {
     start_display();
   }
 }
