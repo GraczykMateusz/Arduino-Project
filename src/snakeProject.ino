@@ -151,6 +151,7 @@ const bool out[NUM_LEDS] PROGMEM  =  {1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,
                                       1,0,1,1,0,0,0,0,0,0,0,0,1,1,0,1,
                                       1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
                                       1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1};
+                                      
 
 /*----------------> EXIT <----------------*/
 void check_exit() {
@@ -191,19 +192,19 @@ void inputController() {
     up    = false;
     down  = false;
   }
-  if(analogRead(X_PIN) > 972 && !left) { //Right
+  else if(analogRead(X_PIN) > 972 && !left) { //Right
     left  = false;
     right = true;
     up    = false;
     down  = false;
   }
-  if(analogRead(Y_PIN) < 50 && !down) { //Up
+  else if(analogRead(Y_PIN) < 50 && !down) { //Up
     left  = false;
     right = false;
     up    = true;
     down  = false;
   }
-  if(analogRead(Y_PIN) > 972 && !up) { //Down
+  else if(analogRead(Y_PIN) > 972 && !up) { //Down
     left  = false;
     right = false; 
     up    = false;
@@ -231,6 +232,9 @@ void displayer(bool* turnOnOffLeds) {
   for(int i = 0; i < NUM_LEDS; ++i) {
     if(i == fruit_position_X && position_X != fruit_position_X)
       color = FRUIT_COLOR;
+
+    //if(is_collision)
+      //color = CRGB::Blue;
       
     if(i % 16 == 0) {
       ++row;
@@ -305,15 +309,20 @@ void gameplay() {
   move_snake();
   
   position_X = convert_XY_to_X(head_position_X, head_position_Y);
+  
+  if(read_value[position_X] == 1 && position_X != fruit_position_X)
+    is_collision = true;
+  
+  collision();
   read_value[position_X] = 1;
 
   displayer(read_value);
 
-  check_point();
-
   //Fruit genarates
   if(position_X == fruit_position_X) {
+    ++score;
     ++snake_tail;
+    
     is_spawn_fruit = false;
     generate_fruit_position();
   }
@@ -387,25 +396,38 @@ int convert_XY_to_X(int headPositionX, int headPositionY) {
   const int ROW_OFFSET = 16;
   const int ROW_NUM = 16;
   
-  int position;
+  int posX;
 
   for(int i = 0; i < ROW_NUM; ++i) {
     if(head_position_Y == i)
-      position = head_position_X + i * ROW_OFFSET;
+      posX = head_position_X + i * ROW_OFFSET;
   }
-  return position;
+  return posX;
 }
 
-void check_point() {
-  if(position_X == fruit_position_X) {
-    ++score;
-     
-  }
-}
-
-void check_collision() {
+void collision() {
   if(is_collision) {
+    is_button_pressed = true;
+
+    FastLED.clear();
+    FastLED.show();
+    delay(500);
+    displayer(read_value);
+    delay(500);
     
+    FastLED.clear();
+    FastLED.show();
+    delay(500);
+    displayer(read_value);
+    delay(500);
+
+    FastLED.clear();
+    FastLED.show();
+    delay(500);
+    displayer(read_value);
+    delay(500);
+    
+    check_exit();
   }
 }
 
