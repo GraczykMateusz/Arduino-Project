@@ -13,8 +13,9 @@
 
 #define LED_OFFSET 32
 
-#define COLOR CRGB::Blue
-#define FRUINT_COLOR CRGB::Red
+#define COLOR CRGB::Red //Red is Green
+#define FRUIT_COLOR CRGB::Green // Green is Red
+#define POINT_COLOR CRGB::Blue
 
 //Snake's movement
 bool left;
@@ -23,7 +24,7 @@ bool up;
 bool down;
 
 //Fruit
-int fruit_position_X;
+int fruit_position_X = -1;
 bool is_spawn_fruit;
 
 //The array of leds. One item for each led in strip.
@@ -137,6 +138,9 @@ void check_exit() {
     is_start_game = false;
     is_only_once = true;
     is_button_pressed = false;
+
+    fruit_position_X = -1;
+    is_spawn_fruit = false;
     
     for(int i = 0; i < NUM_LEDS; ++i) {
       read_value[i] = pgm_read_byte(&out[i]);
@@ -187,34 +191,40 @@ void inputController() {
 /*----------------> DISPLAY <----------------*/
 void displayer(bool* turnOnOffLeds) {
   FastLED.clear();
+
+  CRGB color;
   
   int row = -1;
   
-  for(int i = 0; i < NUM_LEDS; ++i) { 
+  for(int i = 0; i < NUM_LEDS; ++i) {
+    if(i == fruit_position_X)
+      color = FRUIT_COLOR;
+      
     if(i % 16 == 0) {
       ++row;
     }
     if(turnOnOffLeds[i] && row % 2 == 0) {
       if(row == 0) {
-        leds[15-i] = COLOR;
+        leds[15-i] = color;
       } else if(row == 2) {
-        leds[47 - i + LED_OFFSET] = COLOR;
+        leds[47 - i + LED_OFFSET] = color;
       } else if(row == 4) {
-        leds[79 - i + 2 * LED_OFFSET] = COLOR;
+        leds[79 - i + 2 * LED_OFFSET] = color;
       } else if(row == 6) {
-        leds[111 - i + 3 * LED_OFFSET] = COLOR;
+        leds[111 - i + 3 * LED_OFFSET] = color;
       } else if(row == 8) {
-        leds[143 - i + 4 * LED_OFFSET] = COLOR;
+        leds[143 - i + 4 * LED_OFFSET] = color;
       } else if(row == 10) {
-        leds[175 - i + 5 * LED_OFFSET] = COLOR;
+        leds[175 - i + 5 * LED_OFFSET] = color;
       } else if(row == 12) {
-        leds[207 - i + 6 * LED_OFFSET] = COLOR;
+        leds[207 - i + 6 * LED_OFFSET] = color;
       } else if(row == 14) {
-        leds[239 - i + 7 * LED_OFFSET] = COLOR;
+        leds[239 - i + 7 * LED_OFFSET] = color;
       }
     } else if(turnOnOffLeds[i]){
-      leds[i] = COLOR;
+      leds[i] = color;
     }
+    color = COLOR;
   }
   row = 0;
 
@@ -259,6 +269,7 @@ void starting_timer_display() {
 
 /*----------------> GAMEPLAY <---------------*/
 void gameplay() {
+  //Movement
   move_snake();
   read_value[old_position_X] = 0;
   
@@ -267,6 +278,7 @@ void gameplay() {
 
   displayer(read_value);
 
+  //Fruit genarates
   if(position_X == fruit_position_X) {
     read_value[fruit_position_X] = 0;
     generate_fruit_position();
